@@ -1,0 +1,17 @@
+---
+- name: Créer un fichier de bienvenue
+  ansible.builtin.copy:
+    content: "Bonjour ! Ce fichier a été créé par Ansible.\n"
+    dest: /tmp/bienvenue-ansible.txt
+    mode: '0644'
+  notify: Confirmer la mise a jour
+  tags:
+    - fichier
+
+- name: Générer un fichier depuis un modèle Jinja2
+  ansible.builtin.template:
+    src: bienvenue.txt.j2
+    dest: /tmp/bienvenue-modele.txt
+    mode: '0644'
+  tags:
+    - modele
