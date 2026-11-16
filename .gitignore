@@ -1,1 +1,18 @@
-.*
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Vault
+.vault_pass
+
+# Docker volumes data
+/tmp/cloud1-data/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,79 @@
+version: '3.8'
+
+networks:
+  inception:
+    driver: bridge
+
+volumes:
+  wp_data:
+  db_data:
+  pma_data:
+  letsencrypt:
+
+services:
+  mariadb:
+    container_name: mariadb
+    build: ./mariadb
+    env_file: .env
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - inception
+    expose:
+      - "3306"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${SQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  wordpress:
+    container_name: wordpress
+    build: ./wordpress
+    env_file: .env
+    volumes:
+      - wp_data:/var/www/wordpress
+    networks:
+      - inception
+    expose:
+      - "9000"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    restart: unless-stopped
+
+  nginx:
+    container_name: nginx
+    build: ./nginx
+    env_file: .env
+    volumes:
+      - wp_data:/var/www/wordpress
+      - pma_data:/var/www/phpmyadmin
+      - ./nginx/conf:/etc/nginx/conf.d:ro
+      - letsencrypt:/etc/letsencrypt
+    networks:
+      - inception
+    ports:
+      - "8080:80"
+      - "8443:443"
+    depends_on:
+      - wordpress
+      - phpmyadmin
+    restart: unless-stopped
+
+  phpmyadmin:
+    container_name: phpmyadmin
+    build: ./phpmyadmin
+    env_file: .env
+    volumes:
+      - pma_data:/var/www/html
+    networks:
+      - inception
+    expose:
+      - "9000"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    restart: unless-stopped

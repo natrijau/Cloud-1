@@ -1,0 +1,17 @@
+-- Ce fichier sera templaté par Ansible (variables Vault)
+-- Script SQL exécuté AUTOMATIQUEMENT au premier démarrage de MariaDB (grâce au dossier /docker-entrypoint-initdb.d/).
+-- Il crée la base de données WordPress et l'utilisateur applicatif avec les bons droits.
+
+-- Créer la base de données :
+CREATE DATABASE IF NOT EXISTS `{{ sql_database }}`;
+
+-- Créer l'utilisateur :
+CREATE USER IF NOT EXISTS '{{ sql_user }}'@'%' IDENTIFIED BY '{{ sql_password }}';
+CREATE USER IF NOT EXISTS '{{ sql_user }}'@'localhost' IDENTIFIED BY '{{ sql_password }}';
+
+-- Donner les droits:
+GRANT ALL PRIVILEGES ON `{{ sql_database }}`.* TO '{{ sql_user }}'@'%';
+GRANT ALL PRIVILEGES ON `{{ sql_database }}`.* TO '{{ sql_user }}'@'localhost';
+
+-- Appliquer les changements :
+FLUSH PRIVILEGES;
