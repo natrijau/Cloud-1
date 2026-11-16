@@ -1,0 +1,3 @@
+---
+message_accueil: "Bonjour depuis group_vars/all.yml !"
+affichage_bonus: true

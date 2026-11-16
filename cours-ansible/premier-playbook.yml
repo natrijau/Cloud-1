@@ -1,0 +1,94 @@
+---
+- name: Mon premier playbook
+  hosts: local
+  connection: local
+  gather_facts: true
+
+
+  # Dans le cas ou on utilise le fichier vars.yml
+  # vars_files:
+  #   - vars.yml
+  
+  # vars:
+    # message_accueil: "Bonjour depuis une variable Ansible !"
+    # affichage_bonus: true
+  # les lignes du dessus -----> deplacees dans le fichier vars.yml
+
+  tasks:
+
+    # pour les infos de la machine (gather_facts true uniquement)
+    - name: Afficher le système d'exploitation
+      ansible.builtin.debug:
+        var: ansible_facts.distribution
+
+    - name: Afficher la version du système
+      ansible.builtin.debug:
+        var: ansible_facts.distribution_version
+
+    - name: Afficher le nom de la machine vu par Ansible
+      ansible.builtin.debug:
+        var: ansible_facts.hostname
+    # pour les infos de la machine (gather_facts true uniquement)
+
+    - name: Afficher le message bonus si activé
+      ansible.builtin.debug:
+        msg: "La condition est vrai : le bonus est activé"
+      when: affichage_bonus
+
+    - name: Afficher un message
+      ansible.builtin.debug:
+        msg: "{{ message_accueil }}"
+
+    - name: Afficher le nom de la machine
+      ansible.builtin.command: hostname
+      register: resultat_hostname
+      changed_when: false
+
+    - name: Montrer le résultat
+      ansible.builtin.debug:
+        var: resultat_hostname.stdout
+
+    - name: Afficher plusieurs éléments
+      ansible.builtin.debug:
+        msg: "Élément : {{ item }}"
+      loop:
+        - pomme
+        - poire
+        - banane
+
+    - name: Créer un fichier de bienvenue
+      ansible.builtin.copy:
+        content: "Bonjour ! Fichier mis à jour par Ansible.\n"
+        dest: /tmp/bienvenue-ansible.txt
+        mode: '0644'
+      notify: Confirmer la mise a jour 
+
+    - name: Générer un fichier depuis un modèle Jinja2
+      ansible.builtin.template:
+        src: templates/bienvenue.txt.j2
+        dest: /tmp/bienvenue-modele.txt
+        mode: '0644'
+
+    - name: Démontrer la gestion des erreurs
+      block:
+        - name: Simuler une opération qui échoue
+          ansible.builtin.command: /bin/false
+
+        - name: Cette tâche ne sera pas exécutée
+          ansible.builtin.debug:
+            msg: "Cette tâche est ignorée après l'échec"
+
+      rescue:
+        - name: Récupérer l'erreur
+          ansible.builtin.debug:
+            msg: "L'opération a échoué, mais le bloc rescue a pris le relais."
+
+      always:
+        - name: Exécuter quoi qu'il arrive
+          ansible.builtin.debug:
+            msg: "Le bloc always s'exécute dans tous les cas."
+  
+  handlers:
+    - name: Confirmer la mise a jour
+      ansible.builtin.debug:
+        msg: "Le fichier a changé : le handler a été déclenché."
