@@ -1,6 +1,3 @@
-Voici la version corrigée et mise à jour avec ce que tu as ajouté : `ansible.cfg`, `group_vars/all.yml` et la collecte des facts. Copie-colle le contenu entre les quatre accents graves dans ton fichier Markdown.
-
-````markdown
 # Cours Ansible — Premiers pas
 
 Ce dépôt contient les exercices réalisés pour découvrir Ansible en exécutant des commandes sur la machine locale. Nous avons vu les commandes ad hoc, les playbooks, les variables, les facts, les modèles Jinja2, les handlers, la gestion des erreurs et la configuration du projet.
@@ -342,5 +339,3 @@ ansible local -i inventory.ini -m ansible.builtin.command -a "hostname"
 
 # Exécuter le playbook avec l'inventaire défini dans ansible.cfg
 ansible-playbook premier-playbook.yml
-```
-````
