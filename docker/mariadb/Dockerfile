@@ -19,9 +19,6 @@ RUN apt-get update -y && apt-get upgrade -y \
 # Config MariaDB (bind 0.0.0.0 pour accès réseau Docker) :
 COPY conf/50-server.cnf /etc/mysql/mariadb.conf.d/
 
-# Script d'initialisation DB (template Jinja2 → rendu par Ansible) :
-COPY conf/init.sql /docker-entrypoint-initdb.d/
-
 # Donne les droits d'acces au script de lancement:
 COPY conf/entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/entrypoint.sh
