@@ -5,7 +5,7 @@
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker)](https://www.docker.com/)
 [![Arch](https://img.shields.io/badge/Arch-amd64%20%7C%20arm64-lightgrey)](https://hub.docker.com/_/ubuntu)
 
-> **Conteneur MariaDB** basé sur Ubuntu 22.04, configuré pour WordPress avec initialisation automatique au premier démarrage, healthcheck natif, et compatibilité ARM64.
+> **Conteneur MariaDB** base sur Ubuntu 22.04, configure pour WordPress avec initialisation automatique au premier demarrage, healthcheck natif, et compatibilite ARM64. L'initialisation de la base et de l'utilisateur se fait dynamiquement via les variables d'environnement dans entrypoint.sh.
 
 ---
 
@@ -16,24 +16,26 @@ graph TB
     subgraph Container["Conteneur mariadb"]
         direction TB
         
-        Entrypoint["📜 entrypoint.sh\nOrchestration démarrage"]
-        InitDB["🗃 mariadb-install-db\nInitialisation data dir"]
-        SQL["📄 init.sql\nCréation DB + user WP"]
-        Server["🔧 mariadbd\nServeur MariaDB\nbind 0.0.0.0:3306"]
-        Config["⚙️ 50-server.cnf\nConfig réseau + perf"]
-        Health["💓 Healthcheck\nmysqladmin ping"]
+        Entrypoint["entrypoint.sh\nOrchestration demarrage"]
+        InitDB["mariadb-install-db\nInitialisation data dir"]
+        SetRoot["mysqladmin password\nDefinition root password"]
+        CreateWP["mysql -e CREATE DATABASE/USER\nCreation DB + user WP"]
+        Server["mariadbd\nServeur MariaDB\nbind 0.0.0.0:3306"]
+        Config["50-server.cnf\nConfig reseau + perf"]
+        Health["Healthcheck\nmysqladmin ping"]
     end
     
     Entrypoint --> InitDB
-    Entrypoint --> SQL
+    Entrypoint --> SetRoot
+    Entrypoint --> CreateWP
     Entrypoint --> Server
     Server -.-> Config
     Health -.-> Server
     
-    WP["⚡ WordPress\nPHP-FPM"] -->|TCP:3306| Server
-    PMA["🗄 phpMyAdmin"] -->|TCP:3306| Server
+    WP["WordPress\nPHP-FPM"] -->|TCP:3306| Server
+    PMA["phpMyAdmin"] -->|TCP:3306| Server
     
-    Volumes["📦 Volume: db_data\n/var/lib/mysql"] -.-> Server
+    Volumes["Volume: db_data\n/var/lib/mysql"] -.-> Server
     
     style Entrypoint fill:#003545,color:#fff
     style Server fill:#003545,color:#fff
@@ -41,22 +43,24 @@ graph TB
     style Volumes fill:#FF6B35,color:#fff
 ```
 
-### Séquence de Démarrage
+### Sequence de Demarrage
 
 ```mermaid
 sequenceDiagram
     participant E as entrypoint.sh
     participant I as mariadb-install-db
     participant S as mariadbd (bg)
-    participant M as mysql (init scripts)
+    participant R as mysqladmin password
+    participant C as mysql -e CREATE...
     participant F as mariadbd (foreground)
     
     E->>I: Si /var/lib/mysql/mysql absent
-    I-->>E: Data dir initialisé
-    E->>S: Démarrage background
+    I-->>E: Data dir initialise
+    E->>S: Demarrage background (skip-networking=1)
     E->>E: Attendre socket ready (mysqladmin ping)
-    E->>M: Exécuter /docker-entrypoint-initdb.d/*.sql
-    M-->>E: DB + user créés
+    E->>R: Definir root password (SQL_ROOT_PASSWORD)
+    E->>C: Creer DB + user WP via variables d'env
+    C-->>E: wordpress DB + wp_user crees
     E->>S: mysqladmin shutdown
     E->>F: exec mariadbd --user=mysql (foreground)
 ```
@@ -67,7 +71,7 @@ sequenceDiagram
 
 ### Variables d'Environnement (via `.env`)
 
-| Variable | Défaut | Description |
+| Variable | Defaut | Description |
 |----------|--------|-------------|
 | `SQL_ROOT_PASSWORD` | *requis* | Mot de passe root MariaDB |
 | `SQL_DATABASE` | `wordpress` | Nom de la base WordPress |
@@ -78,18 +82,17 @@ sequenceDiagram
 
 ### Fichiers de Configuration
 
-| Fichier | Rôle | Montage |
+| Fichier | Role | Montage |
 |---------|------|---------|
 | `conf/50-server.cnf` | Config serveur (bind, port, user) | `/etc/mysql/mariadb.conf.d/50-server.cnf` |
-| `conf/init.sql` | Script d'initialisation (création DB/user) | `/docker-entrypoint-initdb.d/init.sql` |
-| `conf/init.sql.j2` | Template Jinja2 pour Ansible (prod) | Non monté directement |
-| `conf/entrypoint.sh` | Script d'orchestration démarrage | `/usr/local/bin/entrypoint.sh` |
+| `conf/init.sql.j2` | Template Jinja2 pour Ansible (prod) | Non monte directement |
+| `conf/entrypoint.sh` | Script d'orchestration demarrage | `/usr/local/bin/entrypoint.sh` |
 
-#### `50-server.cnf` — Points Clés
+#### `50-server.cnf` — Points Cles
 
 ```ini
 [mysqld]
-bind-address    = 0.0.0.0       # Écoute sur TOUTES les interfaces (clé Docker)
+bind-address    = 0.0.0.0       # Ecoute sur TOUTES les interfaces (cle Docker)
 port            = 3306
 datadir         = /var/lib/mysql
 socket          = /var/run/mysqld/mysqld.sock
@@ -98,18 +101,7 @@ user            = mysql
 skip-external-locking
 ```
 
-#### `init.sql` — Schema Initial
-
-```sql
-CREATE DATABASE IF NOT EXISTS `wordpress`;
-CREATE USER IF NOT EXISTS 'wp_user'@'%' IDENTIFIED BY 'testpass';
-CREATE USER IF NOT EXISTS 'wp_user'@'localhost' IDENTIFIED BY 'testpass';
-GRANT ALL PRIVILEGES ON `wordpress`.* TO 'wp_user'@'%';
-GRANT ALL PRIVILEGES ON `wordpress`.* TO 'wp_user'@'localhost';
-FLUSH PRIVILEGES;
-```
-
-> Attention : En production, `init.sql.j2` est template par Ansible avec les vraies valeurs depuis Vault.
+> Note : Le fichier `init.sql` a ete supprime. La creation de la base et de l'utilisateur se fait maintenant dynamiquement dans `entrypoint.sh` en utilisant les variables d'environnement. Le template `init.sql.j2` est conserve pour un futur usage avec Ansible.
 
 ---
 
@@ -125,7 +117,6 @@ RUN apt-get update && apt-get install -y mariadb-server \
     && apt-get clean && rm -rf /var/lib/apt/lists/*  # Nettoyage couche
 
 COPY conf/50-server.cnf /etc/mysql/mariadb.conf.d/
-COPY conf/init.sql /docker-entrypoint-initdb.d/
 COPY conf/entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
@@ -149,7 +140,7 @@ docker run -d --name mariadb-test \
   -p 3306:3306 \
   mariadb-wp:local
 
-# Via docker-compose (recommandé)
+# Via docker-compose (recommande)
 docker compose up -d mariadb
 ```
 
@@ -177,20 +168,20 @@ mariadb:
     start_period: 30s
 ```
 
-### Dépendances
+### Dependancees
 
 - **WordPress** : `depends_on: mariadb (condition: service_healthy)`
 - **phpMyAdmin** : `depends_on: mariadb (condition: service_healthy)`
 
-### Réseau
+### Reseau
 
-- Réseau `inception` (bridge)
+- Reseau `inception` (bridge)
 - Accessible via `mariadb:3306` depuis les autres conteneurs
-- **Pas de port mapping hôte** (sécurité : DB non exposée)
+- **Pas de port mapping hote** (securite : DB non exposee)
 
 ### Volume
 
-- `db_data` → `/var/lib/mysql` (persistant)
+- `db_data` -> `/var/lib/mysql` (persistant)
 
 ---
 
@@ -205,15 +196,15 @@ healthcheck:
   start_period: 30s
 ```
 
-- **Commande** : `mysqladmin ping` (léger, pas de connexion complète)
-- **Start period** : 30s (laisse le temps à l'init DB)
-- **Interval** : 10s (réactif)
-- **Retries** : 5 (tolérance panne transitoire)
+- **Commande** : `mysqladmin ping` (leger, pas de connexion complete)
+- **Start period** : 30s (laisse le temps a l'init DB)
+- **Interval** : 10s (reactif)
+- **Retries** : 5 (tolerance panne transitoire)
 
-### Vérification Manuelle
+### Verification Manuelle
 
 ```bash
-# Depuis l'hôte
+# Depuis l'hote
 docker compose exec mariadb mysqladmin ping -h localhost -u root -p${SQL_ROOT_PASSWORD}
 
 # Depuis un autre conteneur (ex: wordpress)
@@ -233,10 +224,10 @@ docker compose exec mariadb bash
 # Client MySQL interactif
 docker compose exec mariadb mysql -u root -p${SQL_ROOT_PASSWORD}
 
-# Requête unique
+# Requete unique
 docker compose exec mariadb mysql -u root -p${SQL_ROOT_PASSWORD} -e "SHOW DATABASES;"
 
-# Vérifier utilisateurs
+# Verifier utilisateurs
 docker compose exec mariadb mysql -u root -p${SQL_ROOT_PASSWORD} -e "SELECT User, Host FROM mysql.user;"
 
 # Status serveur
@@ -259,16 +250,16 @@ docker compose exec -T mariadb mysql -u root -p${SQL_ROOT_PASSWORD} wordpress < 
 ### Debug
 
 ```bash
-# Logs démarrage
+# Logs demarrage
 docker compose logs mariadb
 
-# Suivi temps réel
+# Suivi temps reel
 docker compose logs -f mariadb
 
 # Inspect healthcheck
 docker inspect --format='{{json .State.Health}}' mariadb | jq
 
-# Vérifier config effective
+# Verifier config effective
 docker compose exec mariadb mariadbd --verbose --help | grep -A1 '^bind-address'
 ```
 
@@ -283,6 +274,7 @@ docker compose exec mariadb mariadbd --verbose --help | grep -A1 '^bind-address'
 - Mots de passe via variables d'env (pas en dur dans l'image)
 - `skip-external-locking` (performance conteneur)
 - Healthcheck sans exposition de port
+- Root password defini au demarrage via `SQL_ROOT_PASSWORD`
 
 ### Recommandations Prod
 
@@ -306,18 +298,18 @@ services:
 ### Rotation des Secrets
 
 ```bash
-# 1. Générer nouveau mot de passe
+# 1. Generer nouveau mot de passe
 openssl rand -base64 32
 
-# 2. Mettre à jour .env
+# 2. Mettre a jour .env
 # SQL_ROOT_PASSWORD=new_password
 # SQL_PASSWORD=new_wp_password
 
-# 3. Appliquer (nécessite recréation conteneur pour root)
+# 3. Appliquer (necessite recreation conteneur pour root)
 docker compose down
 docker compose up -d
 
-# 4. Mettre à jour user WP (depuis wordpress conteneur)
+# 4. Mettre a jour user WP (depuis wordpress conteneur)
 docker compose exec wordpress wp user update wp_user --user_pass=new_wp_password --allow-root
 ```
 
@@ -325,13 +317,13 @@ docker compose exec wordpress wp user update wp_user --user_pass=new_wp_password
 
 ## Depannage
 
-| Symptôme | Cause | Solution |
+| Symptome | Cause | Solution |
 |----------|-------|----------|
-| `Healthcheck failed` | Mot de passe root incorrect | Vérifier `SQL_ROOT_PASSWORD` dans `.env` |
+| `Healthcheck failed` | Mot de passe root incorrect | Verifier `SQL_ROOT_PASSWORD` dans `.env` |
 | `Can't connect to MySQL server` | Conteneur pas ready | Attendre `service_healthy` (30-60s) |
-| `Access denied for user 'wp_user'` | User pas créé / mauvais pwd | Vérifier `init.sql` exécuté, `SQL_USER/PASSWORD` |
-| `Table 'wp_options' doesn't exist` | WP pas installé | Vérifier wordpress entrypoint, logs WP |
-| `Disk full` | Volume `db_data` saturé | `docker system prune -a`, augmenter disque |
+| `Access denied for user 'wp_user'` | User pas cree / mauvais pwd | Verifier variables d'env `SQL_USER/PASSWORD` et logs entrypoint |
+| `Table 'wp_options' doesn't exist` | WP pas installe | Verifier wordpress entrypoint, logs WP |
+| `Disk full` | Volume `db_data` sature | `docker system prune -a`, augmenter disque |
 | `innodb: cannot allocate memory` | RAM insuffisante | Ajouter `innodb_buffer_pool_size=128M` dans 50-server.cnf |
 
 ### Reset Complet (ATTENTION : Perte Donnees)
@@ -350,8 +342,7 @@ docker compose up -d --build mariadb
 mariadb/
 ├── Dockerfile
 ├── conf/
-│   ├── entrypoint.sh      # Orchestration démarrage
-│   ├── init.sql           # Script init (valeurs test)
+│   ├── entrypoint.sh      # Orchestration demarrage (init DB + root pwd + WP user)
 │   ├── init.sql.j2        # Template Jinja2 (Ansible prod)
 │   └── 50-server.cnf      # Config serveur MariaDB
 └── README.md              # Ce fichier
@@ -361,19 +352,19 @@ mariadb/
 
 ## Conventions GitHub
 
-### Commits Spécifiques MariaDB
+### Commits Specifiques MariaDB
 
 ```bash
 # Config
 git commit -m "chore(mariadb): update 50-server.cnf for innodb tuning"
 
-# Init script
-git commit -m "feat(mariadb): add utf8mb4 collation in init.sql.j2"
+# Entrypoint
+git commit -m "fix(mariadb): set root password and create WP user via env vars"
 
 # Healthcheck
 git commit -m "fix(mariadb): increase healthcheck start_period to 60s"
 
-# Sécurité
+# Securite
 git commit -m "security(mariadb): drop ALL capabilities, add minimal cap_add"
 ```
 
@@ -385,11 +376,11 @@ git commit -m "security(mariadb): drop ALL capabilities, add minimal cap_add"
 
 ### PR Checklist MariaDB
 
-- [ ] `init.sql.j2` mis à jour si schema change
-- [ ] Healthcheck testé localement (`docker compose up mariadb`)
-- [ ] Backup/restore validé
-- [ ] ARM64 build testé (si modif Dockerfile)
-- [ ] Variables `.env.example` synchronisées
+- [ ] `init.sql.j2` mis a jour si schema change
+- [ ] Healthcheck teste localement (`docker compose up mariadb`)
+- [ ] Backup/restore valide
+- [ ] ARM64 build teste (si modif Dockerfile)
+- [ ] Variables `.env.example` synchronisees
 
 ---
 
@@ -410,4 +401,4 @@ MIT — Voir [LICENSE](../../LICENSE).
 
 ---
 
-*Dernière mise à jour : 2026-11-17 — Partie de la stack Docker WordPress.*
+*Derniere mise a jour : 2026-11-17 — Partie de la stack Docker WordPress.*
