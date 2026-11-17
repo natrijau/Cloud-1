@@ -34,7 +34,7 @@
 
     - name: Afficher le message bonus si activé
       ansible.builtin.debug:
-        msg: "La condition est vrai : le bonus est activé"
+        msg: "La condition est vraie : le bonus est activé"
       when: affichage_bonus
 
     - name: Afficher un message

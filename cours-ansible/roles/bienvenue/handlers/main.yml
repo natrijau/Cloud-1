@@ -2,3 +2,4 @@
 - name: Confirmer la mise a jour
   ansible.builtin.debug:
     msg: "Le fichier a changé : le handler a été déclenché."
+

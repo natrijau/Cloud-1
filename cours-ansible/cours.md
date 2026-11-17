@@ -448,3 +448,26 @@ ansible-playbook premier-playbook.yml --tags fichier
 # Exécuter le playbook complet
 ansible-playbook premier-playbook.yml
 ```
+
+## 15. Vérifier l’idempotence et le déclenchement du handler
+
+Pour vérifier le comportement du playbook, exécuter deux fois la même commande :
+
+```bash
+ansible-playbook premier-playbook.yml
+ansible-playbook premier-playbook.yml
+```
+
+Lors de ces deux exécutions, les tâches `copy` et `template` ont affiché `ok`. Cela signifie que les fichiers existaient déjà avec le contenu et les permissions attendus : Ansible n’a rien eu à modifier.
+
+Le handler **« Confirmer la mise a jour »** ne s’est donc pas déclenché. C’est le comportement attendu : une tâche ne déclenche son handler que si elle signale un changement (`changed`).
+
+Pour tester le handler, modifier temporairement le contenu défini par `ansible.builtin.copy` dans `roles/bienvenue/tasks/main.yml`, puis relancer le playbook :
+
+```bash
+ansible-playbook premier-playbook.yml
+```
+
+La tâche `copy` devrait alors afficher `changed`, et le handler devrait s’exécuter. Après le test, remettre le contenu d’origine et relancer le playbook : la tâche devrait de nouveau afficher `ok`.
+
+Dans la sortie observée, le playbook a également exécuté le bloc de gestion d’erreur : `/bin/false` a échoué, `rescue` a récupéré l’échec et `always` s’est exécuté. Le récapitulatif indiquait `rescued=1` et `failed=0`, car l’échec a été récupéré.

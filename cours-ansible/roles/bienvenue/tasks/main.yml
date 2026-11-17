@@ -1,7 +1,7 @@
 ---
 - name: Créer un fichier de bienvenue
   ansible.builtin.copy:
-    content: "Bonjour ! Ce fichier a été créé par Ansible.\n"
+    content: "Bonjour ! Ce fichier a été créé par Ansible\n"
     dest: /tmp/bienvenue-ansible.txt
     mode: '0644'
   notify: Confirmer la mise a jour
@@ -15,3 +15,4 @@
     mode: '0644'
   tags:
     - modele
+
