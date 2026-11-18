@@ -76,6 +76,3 @@ db-shell:
 
 nginx-logs:
 	$(COMPOSE) logs -f nginx
-
-pma-logs:
-	$(COMPOSE) logs -f phpmyadmin
