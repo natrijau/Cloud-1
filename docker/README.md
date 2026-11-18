@@ -133,9 +133,11 @@ docker compose logs -f
 | **WordPress (front)** | https://localhost:8443 | — | — |
 | **WordPress (admin)** | https://localhost:8443/wp-admin | `admin` | `WP_ADMIN_PASSWORD` |
 | **WordPress (editor)** | https://localhost:8443/wp-admin | `editor` | `WP_USER_PASSWORD` |
+| **phpMyAdmin** | https://pma.localhost:8443 | `wp_user` (`SQL_USER`) | `SQL_PASSWORD` |
 | **MariaDB (root)** | `docker compose exec mariadb mysql -u root -p` | `root` | `SQL_ROOT_PASSWORD` |
 
-> **Note** : Les certificats SSL sont auto-signés en dev → navigateur affiche avertissement → "Accepter le risque".
+> **Note** : Ajouter `127.0.0.1 pma.localhost` dans `/etc/hosts` pour accéder à phpMyAdmin.
+> Les certificats SSL sont auto-signés en dev → navigateur affiche avertissement → "Accepter le risque".
 
 ### Commandes Utiles
 
@@ -202,6 +204,10 @@ services:
 | MariaDB healthcheck échoue | Mot de passe root incorrect | Vérifier `SQL_ROOT_PASSWORD` dans `.env` |
 | Certificat SSL invalide | Pas de DNS valide pour LE | Utilise auto-signé (dev) ou configure DNS + `DOMAIN_NAME` |
 | phpMyAdmin "Cannot connect" | MariaDB pas ready | Attendre healthcheck `service_healthy` |
+| phpMyAdmin "Access denied" | Mauvais credentials | Vérifier `SQL_USER`/`SQL_PASSWORD` dans `.env` + `PMA_BLOWFISH_SECRET` |
+| phpMyAdmin "blowfish_secret too short" | Secret < 32 chars | Générer nouveau : `openssl rand -base64 32` |
+| phpMyAdmin page blanche / 500 | Extension PHP manquante | Vérifier `docker compose exec phpmyadmin php -m` |
+| phpMyAdmin 403 Forbidden | Nginx deny rules | Vérifier `location ~ /\.` et `libraries/` dans nginx.conf |
 | WP "Error establishing connection" | Credentials DB wrong | Vérifier `SQL_USER`, `SQL_PASSWORD`, `SQL_DATABASE` |
 
 ---
@@ -225,6 +231,9 @@ docker/
 │   ├── conf/
 │   │   ├── nginx.conf
 │   │   └── entrypoint.sh
+│   └── README.md
+├── phpmyadmin/
+│   ├── Dockerfile
 │   └── README.md
 └── wordpress/
     ├── Dockerfile

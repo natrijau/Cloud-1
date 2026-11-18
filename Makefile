@@ -26,7 +26,6 @@ help:
 	@echo "  make wp-shell      Shell dans WordPress"
 	@echo "  make db-shell      Shell MySQL dans MariaDB"
 	@echo "  make nginx-logs    Logs Nginx"
-	@echo "  make pma-logs      Logs phpMyAdmin"
 
 # Build UNIQUEMENT via Compose (noms coherents: dodocker pscker-mariadb, etc.)
 build:

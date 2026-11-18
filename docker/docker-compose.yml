@@ -5,6 +5,7 @@ networks:
 volumes:
   wp_data:
   db_data:
+  pma_data:
   letsencrypt:
 
 services:
@@ -56,4 +57,24 @@ services:
       - "8443:443"
     depends_on:
       - wordpress
+      - phpmyadmin
+    restart: unless-stopped
+
+  phpmyadmin:
+    container_name: phpmyadmin
+    build: ./phpmyadmin
+    env_file: .env
+    environment:
+      - PMA_HOST=mariadb
+      - PMA_PORT=3306
+      - PMA_USER=${SQL_USER}
+      - PMA_PASSWORD=${SQL_PASSWORD}
+      - PMA_BLOWFISH_SECRET=${PMA_BLOWFISH_SECRET}
+    volumes:
+      - pma_data:/var/www/html
+    networks:
+      - inception
+    depends_on:
+      mariadb:
+        condition: service_healthy
     restart: unless-stopped
