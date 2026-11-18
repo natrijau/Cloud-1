@@ -28,7 +28,7 @@ help:
 	@echo "  make nginx-logs    Logs Nginx"
 	@echo "  make pma-logs      Logs phpMyAdmin"
 
-# Build UNIQUEMENT via Compose (noms coherents: docker-mariadb, etc.)
+# Build UNIQUEMENT via Compose (noms coherents: dodocker pscker-mariadb, etc.)
 build:
 	$(COMPOSE) build
 
@@ -58,14 +58,6 @@ logs:
 ps:
 	$(COMPOSE) ps
 
-test: up
-	@echo "=== Validation tests ==="
-	@$(COMPOSE) exec -T mariadb mysqladmin ping -h 127.0.0.1 -u wp_user -p$$SQL_PASSWORD --silent && echo "MariaDB: OK"
-	@$(COMPOSE) exec -T mariadb mysql -u wp_user -p$$SQL_PASSWORD -e "USE wordpress; SHOW TABLES;" | grep -q wp_users && echo "WordPress tables: OK"
-	@curl -k -s -o /dev/null -w "WordPress: %{http_code}\n" https://localhost:8443 | grep -q 200 && echo "WordPress HTTPS: OK"
-	@curl -k -s -o /dev/null -w "phpMyAdmin: %{http_code}\n" https://pma.localhost:8443 | grep -q 200 && echo "phpMyAdmin HTTPS: OK"
-	@echo "=== ALL TESTS PASSED ==="
-
 $(ENV_FILE):
 	@printf "SQL_DATABASE=wordpress\nSQL_USER=wp_user\nSQL_PASSWORD=testpass\nSQL_ROOT_PASSWORD=rootpass\nWP_URL=https://localhost:8443\nWP_TITLE=\"Test Cloud-1\"\nWP_ADMIN_LOGIN=admin\nWP_ADMIN_PASSWORD=adminpass\nWP_ADMIN_EMAIL=admin@test.local\nWP_USER_LOGIN=editor\nWP_USER_EMAIL=editor@test.local\nWP_USER_PASSWORD=editorpass\nPMA_BLOWFISH_SECRET=32charsrandomstring123456789012\nDOMAIN_NAME=localhost\n" > $(ENV_FILE)
 
@@ -80,7 +72,7 @@ wp-shell:
 	$(COMPOSE) exec wordpress bash
 
 db-shell:
-	$(COMPOSE) exec mariadb mysql -u root -p$$SQL_ROOT_PASSWORD
+	$(COMPOSE) exec mariadb mysql wordpress -u root -p$$SQL_ROOT_PASSWORD
 
 nginx-logs:
 	$(COMPOSE) logs -f nginx

@@ -332,14 +332,6 @@ services:
 |---------|-----|------|
 | **WordPress (front)** | https://localhost:8443 | Page d'accueil |
 | **WordPress (admin)** | https://localhost:8443/wp-admin | Interface d'administration |
-| **phpMyAdmin** | https://pma.localhost:8443 | Via Nginx proxy (voir ci-dessous) |
-
-### Configuration requise pour phpMyAdmin
-
-Ajouter dans `/etc/hosts` (sudo requis) :
-```bash
-echo "127.0.0.1 pma.localhost" | sudo tee -a /etc/hosts
-```
 
 ### Identifiants par défaut (depuis `.env`)
 
@@ -347,7 +339,6 @@ echo "127.0.0.1 pma.localhost" | sudo tee -a /etc/hosts
 |---------|-------------|--------------|
 | WordPress Admin | `admin` | `WP_ADMIN_PASSWORD` |
 | WordPress Editor | `editor` | `WP_USER_PASSWORD` |
-| phpMyAdmin | `wp_user` (`SQL_USER`) | `SQL_PASSWORD` |
 | MariaDB Root | `root` | `SQL_ROOT_PASSWORD` |
 
 > **Note** : Les certificats SSL sont auto-signés en développement. Le navigateur affichera un avertissement de sécurité → "Avancé" → "Accepter le risque et continuer".
@@ -360,9 +351,6 @@ curl -k https://localhost:8443
 
 # WordPress admin
 curl -k https://localhost:8443/wp-admin
-
-# phpMyAdmin (après config /etc/hosts)
-curl -k https://pma.localhost:8443
 
 # Health check WP-CLI
 docker compose exec wordpress wp --allow-root --path=/var/www/wordpress core version

@@ -33,7 +33,6 @@ graph TB
     Health -.-> Server
     
     WP["WordPress\nPHP-FPM"] -->|TCP:3306| Server
-    PMA["phpMyAdmin"] -->|TCP:3306| Server
     
     Volumes["Volume: db_data\n/var/lib/mysql"] -.-> Server
     

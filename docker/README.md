@@ -19,32 +19,26 @@ graph TB
         subgraph Net["Réseau Bridge: inception"]
             direction LR
             
-            Nginx["🌐 Nginx\nPorts 8080/8443\nReverse Proxy + SSL"]
-            WP["⚡ WordPress\nPHP-FPM 8.1 :9000"]
-            PMA["🗄 phpMyAdmin\nApache :80 → proxied"]
-            DB["💾 MariaDB\nPort 3306"]
+            Nginx["Nginx\nPorts 8080/8443\nReverse Proxy + SSL"]
+            WP["WordPress\nPHP-FPM 8.1 :9000"]
+            DB["MariaDB\nPort 3306"]
         end
         
-        Volumes["📦 Volumes Persistants"]
+        Volumes["Volumes Persistants"]
     end
     
-    User["👤 Utilisateur"] -->|HTTPS :8443| Nginx
+    User["Utilisateur"] -->|HTTPS :8443| Nginx
     User -->|HTTP :8080| Nginx
     
     Nginx -->|FastCGI :9000| WP
-    Nginx -->|Proxy HTTP :80| PMA
-    
     WP -->|SQL :3306| DB
-    PMA -->|SQL :3306| DB
     
     WP -.->|wp_data| Volumes
     DB -.->|db_data| Volumes
-    PMA -.->|pma_data| Volumes
     Nginx -.->|letsencrypt| Volumes
     
     style Nginx fill:#009639,color:#fff
     style WP fill:#21759B,color:#fff
-    style PMA fill:#6C78A3,color:#fff
     style DB fill:#003545,color:#fff
     style Volumes fill:#FF6B35,color:#fff
 ```
@@ -55,7 +49,6 @@ graph TB
 |---------|-------------|-----------|-----------|-------------|
 | **Nginx** | 80 / 443 | 8080 / 8443 | HTTP/HTTPS | Point d'entree unique, SSL termination |
 | **WordPress** | 9000 | - | FastCGI | PHP-FPM, accessible seulement via Nginx |
-| **phpMyAdmin** | 80 | - | HTTP | Proxied via Nginx sur `pma.localhost` |
 | **MariaDB** | 3306 | - | MySQL | Interne uniquement, healthcheck actif |
 
 ### Volumes Partagés
@@ -64,7 +57,6 @@ graph TB
 |--------|------------|---------|
 | `wp_data` | `wordpress:/var/www/wordpress`, `nginx:/var/www/wordpress` | Code WP, uploads, plugins, thèmes |
 | `db_data` | `mariadb:/var/lib/mysql` | Fichiers de base de données |
-| `pma_data` | `phpmyadmin:/var/www/html`, `nginx:/var/www/phpmyadmin` | Config phpMyAdmin, session |
 | `letsencrypt` | `nginx:/etc/letsencrypt` | Certificats SSL Let's Encrypt |
 
 ---
@@ -132,7 +124,6 @@ docker compose logs -f
 
 # 4. Accéder aux services
 # WordPress:    https://localhost:8443
-# phpMyAdmin:   https://pma.localhost:8443 (ajouter dans /etc/hosts)
 ```
 
 ### Accès Utilisateur
@@ -142,11 +133,9 @@ docker compose logs -f
 | **WordPress (front)** | https://localhost:8443 | — | — |
 | **WordPress (admin)** | https://localhost:8443/wp-admin | `admin` | `WP_ADMIN_PASSWORD` |
 | **WordPress (editor)** | https://localhost:8443/wp-admin | `editor` | `WP_USER_PASSWORD` |
-| **phpMyAdmin** | https://pma.localhost:8443 | `wp_user` (`SQL_USER`) | `SQL_PASSWORD` |
 | **MariaDB (root)** | `docker compose exec mariadb mysql -u root -p` | `root` | `SQL_ROOT_PASSWORD` |
 
-> **Note** : Ajouter `127.0.0.1 pma.localhost` dans `/etc/hosts` pour accéder à phpMyAdmin.
-> Les certificats SSL sont auto-signés en dev → navigateur affiche avertissement → "Accepter le risque".
+> **Note** : Les certificats SSL sont auto-signés en dev → navigateur affiche avertissement → "Accepter le risque".
 
 ### Commandes Utiles
 
@@ -180,7 +169,7 @@ docker compose restart nginx
 
 ### Bonnes Pratiques Implémentées
 
-- **Non-root** : Nginx, WordPress (www-data), MariaDB (mysql), phpMyAdmin (www-data)
+- **Non-root** : Nginx, WordPress (www-data), MariaDB (mysql)
 - **Secrets externalisés** : Via `.env` (gitignored) + GitHub Secrets en CI
 - **Réseau isolé** : Bridge `inception` sans exposition directe DB/PHP-FPM
 - **Healthchecks** : MariaDB (`mysqladmin ping`), dépendances conditionnelles
@@ -228,7 +217,6 @@ docker/
 │   ├── Dockerfile
 │   ├── conf/
 │   │   ├── entrypoint.sh
-│   │   ├── init.sql
 │   │   ├── init.sql.j2       # Template Jinja2 (Ansible)
 │   │   └── 50-server.cnf
 │   └── README.md
@@ -237,11 +225,6 @@ docker/
 │   ├── conf/
 │   │   ├── nginx.conf
 │   │   └── entrypoint.sh
-│   └── README.md
-├── phpmyadmin/
-│   ├── Dockerfile
-│   ├── conf/
-│   │   └── config.inc.php    # Template Jinja2 (Ansible)
 │   └── README.md
 └── wordpress/
     ├── Dockerfile

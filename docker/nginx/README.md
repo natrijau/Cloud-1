@@ -5,7 +5,7 @@
 [![Ubuntu](https://img.shields.io/badge/Base-Ubuntu_22.04-orange?logo=ubuntu)](https://ubuntu.com/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker)](https://www.docker.com/)
 
-> **Reverse Proxy Nginx** avec terminaison SSL/TLS, renouvellement automatique Let's Encrypt (Certbot), fallback certificat auto-signé, et routage vers WordPress (FastCGI) + phpMyAdmin (Proxy HTTP).
+> **Reverse Proxy Nginx** avec terminaison SSL/TLS, renouvellement automatique Let's Encrypt (Certbot), fallback certificat auto-signé, et routage vers WordPress (FastCGI).
 
 ---
 
@@ -16,36 +16,32 @@ graph TB
     subgraph Container["Conteneur nginx"]
         direction TB
         
-        Entrypoint["📜 entrypoint.sh\nGestion certificats"]
-        Certbot["🔐 Certbot\nRenouvellement LE"]
-        Nginx["🌐 Nginx Master\nWorker processes"]
+        Entrypoint["entrypoint.sh\nGestion certificats"]
+        Certbot["Certbot\nRenouvellement LE"]
+        Nginx["Nginx Master\nWorker processes"]
         
         subgraph VHosts["Virtual Hosts"]
-            HTTP["🔀 HTTP :80\n→ Redirect HTTPS\n→ ACME Challenge"]
-            WP_HTTPS["🔒 HTTPS :443\nlocalhost\n→ WordPress (FastCGI)"]
-            PMA_HTTPS["🔒 HTTPS :443\npma.localhost\n→ phpMyAdmin (Proxy)"]
+            HTTP["HTTP :80\nRedirect HTTPS\nACME Challenge"]
+            WP_HTTPS["HTTPS :443\nlocalhost\nWordPress (FastCGI)"]
         end
         
-        SSL["📁 /etc/nginx/ssl/\nfullchain.pem + privkey.pem"]
-        LE["📁 /etc/letsencrypt/\nCertificats LE officiels"]
+        SSL["/etc/nginx/ssl/\nfullchain.pem + privkey.pem"]
+        LE["/etc/letsencrypt/\nCertificats LE officiels"]
     end
     
-    User["👤 Utilisateur"] -->|:8080 HTTP| HTTP
+    User["Utilisateur"] -->|:8080 HTTP| HTTP
     User -->|:8443 HTTPS| WP_HTTPS
-    User -->|:8443 HTTPS| PMA_HTTPS
     
     HTTP -->|ACME| Certbot
     Entrypoint -->|Copy/Gen| SSL
     LE -.->|Symlink/Renew| Certbot
     SSL --> Nginx
     
-    WP_HTTPS -->|FastCGI :9000| WordPress["⚡ WordPress\nphp-fpm:9000"]
-    PMA_HTTPS -->|Proxy HTTP :80| phpMyAdmin["🗄 phpMyAdmin\napache:80"]
+    WP_HTTPS -->|FastCGI :9000| WordPress["WordPress\nphp-fpm:9000"]
     
-    Volumes["📦 Volumes"] -.-> SSL
+    Volumes["Volumes"] -.-> SSL
     Volumes -.-> LE
     Volumes -.-> WP_HTTPS
-    Volumes -.-> PMA_HTTPS
     
     style Entrypoint fill:#009639,color:#fff
     style Nginx fill:#009639,color:#fff
@@ -60,7 +56,6 @@ sequenceDiagram
     participant U as Utilisateur
     participant N as Nginx (:8080/:8443)
     participant W as WordPress (:9000)
-    participant P as phpMyAdmin (:80)
     
     alt HTTP Request
         U->>N: GET http://localhost/
@@ -70,12 +65,6 @@ sequenceDiagram
         N->>N: SSL Termination
         N->>W: FastCGI php-fpm:9000
         W-->>N: Response
-        N-->>U: HTTPS Response
-    else HTTPS phpMyAdmin
-        U->>N: GET https://pma.localhost/
-        N->>N: SSL Termination
-        N->>P: Proxy HTTP phpmyadmin:80
-        P-->>N: Response
         N-->>U: HTTPS Response
     end
 ```
@@ -110,7 +99,7 @@ http {
     # 1. HTTP → HTTPS Redirect + ACME Challenge
     server {
         listen 80;
-        server_name localhost pma.localhost;
+        server_name localhost;
         
         location /.well-known/acme-challenge/ {
             root /var/www/certbot;  # Certbot webroot
@@ -136,35 +125,13 @@ http {
         }
         
         location ~ \.php$ {
-            fastcgi_pass wordpress:9000;  # ← Service Docker
+            fastcgi_pass wordpress:9000;  # Service Docker
             include fastcgi_params;
             fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
             fastcgi_param HTTPS on;
         }
         
         # Sécurité: deny dotfiles, uploads PHP
-    }
-    
-    # 3. phpMyAdmin HTTPS (Proxy HTTP)
-    server {
-        listen 443 ssl http2;
-        server_name pma.localhost;
-        
-        ssl_certificate /etc/nginx/ssl/fullchain.pem;
-        ssl_certificate_key /etc/nginx/ssl/privkey.pem;
-        
-        root /var/www/phpmyadmin;
-        
-        location / {
-            proxy_pass http://phpmyadmin:80;  # ← Service Docker
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-            # ... autres headers
-        }
-        
-        # Sécurité: deny libraries, setup, templates
     }
 }
 ```
@@ -259,8 +226,7 @@ nginx:
   env_file: .env
   volumes:
     - wp_data:/var/www/wordpress          # Code WP (partagé wordpress)
-    - pma_data:/var/www/phpmyadmin        # phpMyAdmin (partagé phpmyadmin)
-    - ./nginx/conf:/etc/nginx/conf.d:ro   # Config Nginx (read-only)
+    - ./nginx/conf/nginx.conf:/etc/nginx/nginx.conf:ro   # Config Nginx (read-only)
     - letsencrypt:/etc/letsencrypt        # Certificats LE persistants
   networks:
     - inception
@@ -269,19 +235,17 @@ nginx:
     - "8443:443"     # HTTPS → Termination SSL
   depends_on:
     - wordpress
-    - phpmyadmin
   restart: unless-stopped
 ```
 
 ### Dépendances
 
 - **WordPress** : Doit être up pour FastCGI (pas de healthcheck strict, mais `depends_on`)
-- **phpMyAdmin** : Doit être up pour proxy HTTP
 
 ### Réseau
 
 - Réseau `inception` (bridge)
-- Résolution DNS Docker : `wordpress:9000`, `phpmyadmin:80`
+- Résolution DNS Docker : `wordpress:9000`
 
 ### Ports Hôte
 
@@ -297,9 +261,8 @@ nginx:
 | Volume | Contenu | Partagé Avec |
 |--------|---------|--------------|
 | `wp_data` | `/var/www/wordpress` (code, uploads) | `wordpress` |
-| `pma_data` | `/var/www/phpmyadmin` | `phpmyadmin` |
 | `letsencrypt` | `/etc/letsencrypt` (certificats LE) | — |
-| `./nginx/conf` | `/etc/nginx/conf.d` (read-only) | — |
+| `./nginx/conf/nginx.conf` | `/etc/nginx/nginx.conf` (read-only) | — |
 
 ---
 
@@ -308,14 +271,14 @@ nginx:
 ### Mode Développement (Auto-signé)
 
 - Au premier démarrage sans certs LE → génère auto-signé RSA 2048 bits, 365 jours
-- SAN inclus : `localhost`, `pma.localhost`
+- SAN inclus : `localhost`
 - Navigateur affichera avertissement → "Accepter le risque"
 
 ### Mode Production (Let's Encrypt)
 
 #### Prérequis
 
-- Domaine public valide (ex: `monsite.com`, `pma.monsite.com`)
+- Domaine public valide (ex: `monsite.com`)
 - DNS A/AAAA → IP publique du serveur
 - Ports 80/443 accessibles depuis Internet
 
@@ -331,7 +294,7 @@ docker compose up -d nginx
 # 3. Demander certificat LE (webroot mode)
 docker compose exec nginx certbot certonly --webroot \
   -w /var/www/certbot \
-  -d monsite.com -d pma.monsite.com \
+  -d monsite.com \
   --email admin@monsite.com --agree-tos --no-eff-email
 
 # 4. Les certs sont dans /etc/letsencrypt/live/monsite.com/
