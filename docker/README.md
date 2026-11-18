@@ -135,6 +135,19 @@ docker compose logs -f
 # phpMyAdmin:   https://pma.localhost:8443 (ajouter dans /etc/hosts)
 ```
 
+### Accès Utilisateur
+
+| Service | URL | Utilisateur | Mot de passe |
+|---------|-----|-------------|--------------|
+| **WordPress (front)** | https://localhost:8443 | — | — |
+| **WordPress (admin)** | https://localhost:8443/wp-admin | `admin` | `WP_ADMIN_PASSWORD` |
+| **WordPress (editor)** | https://localhost:8443/wp-admin | `editor` | `WP_USER_PASSWORD` |
+| **phpMyAdmin** | https://pma.localhost:8443 | `wp_user` (`SQL_USER`) | `SQL_PASSWORD` |
+| **MariaDB (root)** | `docker compose exec mariadb mysql -u root -p` | `root` | `SQL_ROOT_PASSWORD` |
+
+> **Note** : Ajouter `127.0.0.1 pma.localhost` dans `/etc/hosts` pour accéder à phpMyAdmin.
+> Les certificats SSL sont auto-signés en dev → navigateur affiche avertissement → "Accepter le risque".
+
 ### Commandes Utiles
 
 ```bash
