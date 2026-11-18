@@ -282,6 +282,67 @@ EXIT;
 \q
 ```
 
+#### Créer un utilisateur et une base
+
+```sql
+-- Créer une base de données (charset utf8mb4 pour emojis)
+CREATE DATABASE ma_base CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Créer un utilisateur (accès depuis tout hôte Docker)
+CREATE USER 'mon_user'@'%' IDENTIFIED BY 'mon_password';
+
+-- Créer un utilisateur (accès local uniquement)
+CREATE USER 'mon_user'@'localhost' IDENTIFIED BY 'mon_password';
+
+-- Donner tous les droits sur la base
+GRANT ALL PRIVILEGES ON ma_base.* TO 'mon_user'@'%';
+GRANT ALL PRIVILEGES ON ma_base.* TO 'mon_user'@'localhost';
+
+-- Appliquer les changements
+FLUSH PRIVILEGES;
+```
+
+#### Voir / Lister
+
+```sql
+-- Utilisateurs
+SELECT User, Host, plugin FROM mysql.user;
+
+-- Bases de données
+SHOW DATABASES;
+
+-- Tables d'une base
+USE ma_base;
+SHOW TABLES;
+
+-- Structure table
+DESC ma_table;
+-- ou
+SHOW CREATE TABLE ma_table;
+
+-- Droits d'un utilisateur
+SHOW GRANTS FOR 'mon_user'@'%';
+```
+
+#### Modifier / Supprimer
+
+```sql
+-- Changer mot de passe
+ALTER USER 'mon_user'@'%' IDENTIFIED BY 'nouveau_password';
+
+-- Renommer utilisateur
+RENAME USER 'mon_user'@'%' TO 'nouveau_user'@'%';
+
+-- Supprimer utilisateur
+DROP USER 'mon_user'@'%';
+
+-- Supprimer base
+DROP DATABASE ma_base;
+
+-- Supprimer table
+DROP TABLE ma_table;
+```
+
 ### Backup / Restore
 
 ```bash
