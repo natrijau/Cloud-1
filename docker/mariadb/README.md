@@ -221,7 +221,7 @@ docker compose exec wordpress mysqladmin ping -h mariadb -u ${SQL_USER} -p${SQL_
 # Shell root dans le conteneur
 docker compose exec mariadb bash
 
-# Client MySQL interactif
+# Client MySQL interactif (depuis hote)
 docker compose exec mariadb mysql -u root -p${SQL_ROOT_PASSWORD}
 
 # Requete unique
@@ -232,6 +232,51 @@ docker compose exec mariadb mysql -u root -p${SQL_ROOT_PASSWORD} -e "SELECT User
 
 # Status serveur
 docker compose exec mariadb mysqladmin -u root -p${SQL_ROOT_PASSWORD} status
+```
+
+### Administration (depuis conteneur WordPress)
+
+```bash
+# Shell dans WordPress
+docker compose exec wordpress bash
+
+# Connexion MySQL vers MariaDB (hostname = mariadb)
+mysql -h mariadb -u ${SQL_USER} -p${SQL_PASSWORD} wordpress
+
+# Ou en root
+mysql -h mariadb -u root -p${SQL_ROOT_PASSWORD} wordpress
+```
+
+#### Commandes MySQL utiles (une fois dans le client)
+
+```sql
+-- Utilisateurs WordPress
+SELECT ID, user_login, user_email, user_registered FROM wp_users;
+
+-- Voir toutes les tables
+SHOW TABLES;
+
+-- Structure d'une table
+DESC wp_users;
+DESC wp_posts;
+DESC wp_options;
+
+-- Articles publies
+SELECT post_title, post_status FROM wp_posts WHERE post_type='post' AND post_status='publish';
+
+-- Compter articles
+SELECT COUNT(*) FROM wp_posts WHERE post_type='post';
+
+-- Options site
+SELECT option_name, option_value FROM wp_options WHERE option_name IN ('siteurl', 'home', 'blogname');
+
+-- Affichage vertical (plus lisible)
+SELECT * FROM wp_users WHERE user_login='admin'\G
+
+-- Quitter
+EXIT;
+-- ou
+\q
 ```
 
 ### Backup / Restore
