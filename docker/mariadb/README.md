@@ -273,6 +273,9 @@ SELECT option_name, option_value FROM wp_options WHERE option_name IN ('siteurl'
 -- Affichage vertical (plus lisible)
 SELECT * FROM wp_users WHERE user_login='admin'\G
 
+-- Supprimer un utilisateur
+DROP USER 'mon_user'@'%';
+
 -- Quitter
 EXIT;
 -- ou
