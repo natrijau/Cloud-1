@@ -3,5 +3,5 @@
 ###########################################################
 FROM phpmyadmin/phpmyadmin:latest
 
-# Config custom (sera templatée par Ansible)
-COPY conf/config.inc.php /etc/phpmyadmin/config.inc.php
+# Configuration via variables d'environnement PMA_*
+# Pas de COPY de config.inc.php - l'image officielle la génère depuis les variables PMA_*
