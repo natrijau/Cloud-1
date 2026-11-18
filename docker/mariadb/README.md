@@ -251,27 +251,27 @@ mysql -h mariadb -u root -p${SQL_ROOT_PASSWORD} wordpress
 
 ```sql
 -- Utilisateurs WordPress
-SELECT ID, user_login, user_email, user_registered FROM wp_users;
+SELECT `ID`, `user_login`, `user_email`, `user_registered` FROM `wp_users`;
 
 -- Voir toutes les tables
 SHOW TABLES;
 
 -- Structure d'une table
-DESC wp_users;
-DESC wp_posts;
-DESC wp_options;
+DESC `wp_users`;
+DESC `wp_posts`;
+DESC `wp_options`;
 
 -- Articles publies
-SELECT post_title, post_status FROM wp_posts WHERE post_type='post' AND post_status='publish';
+SELECT `post_title`, `post_status` FROM `wp_posts` WHERE `post_type`='post' AND `post_status`='publish';
 
 -- Compter articles
-SELECT COUNT(*) FROM wp_posts WHERE post_type='post';
+SELECT COUNT(*) FROM `wp_posts` WHERE `post_type`='post';
 
 -- Options site
-SELECT option_name, option_value FROM wp_options WHERE option_name IN ('siteurl', 'home', 'blogname');
+SELECT `option_name`, `option_value` FROM `wp_options` WHERE `option_name` IN ('siteurl', 'home', 'blogname');
 
 -- Affichage vertical (plus lisible)
-SELECT * FROM wp_users WHERE user_login='admin'\G
+SELECT * FROM `wp_users` WHERE `user_login`='admin'\G
 
 -- Supprimer un utilisateur
 DROP USER 'mon_user'@'%';
@@ -286,7 +286,7 @@ EXIT;
 
 ```sql
 -- Créer une base de données (charset utf8mb4 pour emojis)
-CREATE DATABASE ma_base CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE `ma_base` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Créer un utilisateur (accès depuis tout hôte Docker)
 CREATE USER 'mon_user'@'%' IDENTIFIED BY 'mon_password';
@@ -295,8 +295,8 @@ CREATE USER 'mon_user'@'%' IDENTIFIED BY 'mon_password';
 CREATE USER 'mon_user'@'localhost' IDENTIFIED BY 'mon_password';
 
 -- Donner tous les droits sur la base
-GRANT ALL PRIVILEGES ON ma_base.* TO 'mon_user'@'%';
-GRANT ALL PRIVILEGES ON ma_base.* TO 'mon_user'@'localhost';
+GRANT ALL PRIVILEGES ON `ma_base`.* TO 'mon_user'@'%';
+GRANT ALL PRIVILEGES ON `ma_base`.* TO 'mon_user'@'localhost';
 
 -- Appliquer les changements
 FLUSH PRIVILEGES;
@@ -306,19 +306,19 @@ FLUSH PRIVILEGES;
 
 ```sql
 -- Utilisateurs
-SELECT User, Host, plugin FROM mysql.user;
+SELECT `User`, `Host`, `plugin` FROM `mysql`.`user`;
 
 -- Bases de données
 SHOW DATABASES;
 
 -- Tables d'une base
-USE ma_base;
+USE `ma_base`;
 SHOW TABLES;
 
 -- Structure table
-DESC ma_table;
+DESC `ma_table`;
 -- ou
-SHOW CREATE TABLE ma_table;
+SHOW CREATE TABLE `ma_table`;
 
 -- Droits d'un utilisateur
 SHOW GRANTS FOR 'mon_user'@'%';
@@ -337,10 +337,10 @@ RENAME USER 'mon_user'@'%' TO 'nouveau_user'@'%';
 DROP USER 'mon_user'@'%';
 
 -- Supprimer base
-DROP DATABASE ma_base;
+DROP DATABASE `ma_base`;
 
 -- Supprimer table
-DROP TABLE ma_table;
+DROP TABLE `ma_table`;
 ```
 
 ### Backup / Restore
