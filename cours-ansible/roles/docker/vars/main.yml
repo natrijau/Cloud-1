@@ -1,0 +1,5 @@
+---
+docker_log_max_size: "10m"
+docker_log_max_file: "3"
+
+# (Chaque conteneur gardera au maximum 3 fichiers de log de 10 Mo = 30 Mo max par conteneur, très important en production/cloud).

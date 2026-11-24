@@ -1,0 +1,34 @@
+---
+# 1. Dossier cible
+- name: Créer le répertoire de l'application
+  ansible.builtin.file:
+    path: "{{ app_dir }}"
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: '0755'
+
+# 2. Copie des fichiers Docker
+- name: Synchroniser les fichiers de configuration Docker
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../docker/"
+    dest: "{{ app_dir }}/"
+    owner: ubuntu
+    group: ubuntu
+    mode: '0755'
+
+# 3. Injection sécurisée des variables d'environnement
+- name: Générer le fichier .env
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ app_dir }}/.env"
+    owner: ubuntu
+    group: ubuntu
+    mode: '0600'
+
+# 4. Déploiement pro via le module Docker Compose
+- name: Déployer et démarrer la stack Docker Compose
+  community.docker.docker_compose_v2:
+    project_src: "{{ app_dir }}"
+    state: present
+    build: policy

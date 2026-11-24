@@ -1,0 +1,15 @@
+---
+# Gestion de l'IPv6
+ufw_enable_ipv6: "yes"
+
+# Ports à ouvrir pour Cloud-1 / Inception
+ufw_allowed_ports:
+  - port: 22
+    proto: tcp
+    comment: "SSH access"
+  - port: 8080
+    proto: tcp
+    comment: "Nginx HTTP"
+  - port: 8443
+    proto: tcp
+    comment: "Nginx HTTPS"

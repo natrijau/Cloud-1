@@ -1,0 +1,35 @@
+---
+# 1. Installation du paquet
+- name: S'assurer que UFW est installé
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+    update_cache: yes
+  become: true
+
+# 2. Déploiement de la configuration via Template + déclenchement du Handler
+- name: Configurer /etc/default/ufw
+  ansible.builtin.template:
+    src: ufw.default.j2
+    dest: /etc/default/ufw
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  notify: Reload UFW
+
+# 3. Ouvrir les ports définis dans les variables (Boucle Jinja2 / loop)
+- name: Autoriser les flux réseau
+  community.general.ufw:
+    rule: allow
+    port: "{{ item.port | string }}"
+    proto: "{{ item.proto }}"
+    comment: "{{ item.comment }}"
+  loop: "{{ ufw_allowed_ports }}"
+  become: true
+
+# 4. Activer UFW au démarrage de la machine
+- name: Activer UFW
+  community.general.ufw:
+    state: enabled
+  become: true

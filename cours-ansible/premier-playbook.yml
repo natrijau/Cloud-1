@@ -1,79 +1,16 @@
+# deploy.yml
 ---
-- name: Mon premier playbook
-  hosts: local
-  connection: local
-  gather_facts: true
-
-
-  # Dans le cas ou on utilise le fichier vars.yml
-  # vars_files:
-  #   - vars.yml
-  
-  # vars:
-    # message_accueil: "Bonjour depuis une variable Ansible !"
-    # affichage_bonus: true
-  # les lignes du dessus -----> deplacees dans le fichier vars.yml
+- name: Déploiement complet de l'infrastructure Cloud-1
+  hosts: all
+  become: true # Droits sudo pour les paquets, firewall et docker
 
   roles:
-    - bienvenue
+    # 1. Sécurité réseau
+    - role: roles/ufw
 
-  tasks:
-    # pour les infos de la machine (gather_facts true uniquement)
-    - name: Afficher le système d'exploitation
-      ansible.builtin.debug:
-        var: ansible_facts.distribution
+    # 2. Moteur de conteneurs
+    - role: roles/docker
 
-    - name: Afficher la version du système
-      ansible.builtin.debug:
-        var: ansible_facts.distribution_version
-
-    - name: Afficher le nom de la machine vu par Ansible
-      ansible.builtin.debug:
-        var: ansible_facts.hostname
-    # pour les infos de la machine (gather_facts true uniquement)
-
-    - name: Afficher le message bonus si activé
-      ansible.builtin.debug:
-        msg: "La condition est vraie : le bonus est activé"
-      when: affichage_bonus
-
-    - name: Afficher un message
-      ansible.builtin.debug:
-        msg: "{{ message_accueil }}"
-
-    - name: Afficher le nom de la machine
-      ansible.builtin.command: hostname
-      register: resultat_hostname
-      changed_when: false
-
-    - name: Montrer le résultat
-      ansible.builtin.debug:
-        var: resultat_hostname.stdout
-
-    - name: Afficher plusieurs éléments
-      ansible.builtin.debug:
-        msg: "Élément : {{ item }}"
-      loop:
-        - pomme
-        - poire
-        - banane
-
-    - name: Démontrer la gestion des erreurs
-      block:
-        - name: Simuler une opération qui échoue
-          ansible.builtin.command: /bin/false
-
-        - name: Cette tâche ne sera pas exécutée
-          ansible.builtin.debug:
-            msg: "Cette tâche est ignorée après l'échec"
-
-      rescue:
-        - name: Récupérer l'erreur
-          ansible.builtin.debug:
-            msg: "L'opération a échoué, mais le bloc rescue a pris le relais."
-
-      always:
-        - name: Exécuter quoi qu'il arrive
-          ansible.builtin.debug:
-            msg: "Le bloc always s'exécute dans tous les cas."
-  
+    # 3. Déploiement applicatif WordPress / MariaDB / Nginx
+    - role: roles/inception
+      become: false # Inception se lance avec l'utilisateur normal (ubuntu)
